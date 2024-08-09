@@ -1,0 +1,40 @@
+name: excr CI/CD
+
+on: 
+# main 브랜치로 PR이 생성되었을 때 트리거 발생
+  pull_request_target:
+    types: [ closed ]
+    branches:
+      - main 
+      
+jobs: 
+  CICD: 
+    runs-on: prod_runner3
+# main 브랜치로 병합이 완료되면 순차적으로 명령어 실행
+    if: ${{ github.event.pull_request.merged == true }}
+   
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 
+
+# git diff 명령어로 변경된 파일 리스트를 .github/workflows/script/change-file에 저장
+      - name: Fetch API Data
+        run: |
+          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.merge_commit_sha }} > .github/workflows/script/change-file
+
+      - name: Add SSH key to known_hosts
+        run: |
+          ssh-keyscan -t rsa -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST1 }} >> ~/.ssh/known_hosts
+          ssh-keyscan -t rsa -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST2 }} >> ~/.ssh/known_hosts
+
+# .github/workflows/script/deploy.sh 파일로 SSH 패스워드, 포트, 유저, IP주소 전달(시크릿)
+      - name: deploy1
+        run: |
+          chmod +x .github/workflows/script/deploy.sh
+          ./.github/workflows/script/deploy.sh "${{ secrets.SSH_PASSWORD }}" "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USERNAME }}" "${{ secrets.SSH_HOST1 }}"
+
+      - name: deploy2
+        run: |
+          chmod +x .github/workflows/script/deploy.sh
+          ./.github/workflows/script/deploy.sh "${{ secrets.SSH_PASSWORD }}" "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USERNAME }}" "${{ secrets.SSH_HOST2 }}"
