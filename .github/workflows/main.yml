@@ -9,7 +9,7 @@ on:
       
 jobs: 
   CICD: 
-    runs-on: prod_runner3
+    runs-on: prod-runner3
 # main 브랜치로 병합이 완료되면 순차적으로 명령어 실행
     if: ${{ github.event.pull_request.merged == true }}
    
